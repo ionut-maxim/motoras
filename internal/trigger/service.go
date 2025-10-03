@@ -235,6 +235,8 @@ func (s *Service) startTriggerWorker(ctx context.Context, trigger Trigger) error
 
 				subCancel()
 
+				// Drain the old subscriber's channel to ensure all messages are processed
+				// before starting a new subscriber.
 				for range triggerCh {
 				}
 
