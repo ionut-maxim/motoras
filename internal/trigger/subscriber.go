@@ -41,7 +41,14 @@ func (m *mockSubscriber) Subscribe(ctx context.Context, logger *slog.Logger) (<-
 				nanos := time.Now().UnixNano()
 				data := fmt.Sprintf("%s: %d", m.Input, nanos)
 				logger.Debug("Received a message", slog.String("message", data))
-				results <- Result{Data: data}
+
+				select {
+				case results <- Result{Data: data}:
+				case <-ctx.Done():
+					logger.Info("Stopping subscriber")
+					return
+				}
+
 			case <-ctx.Done():
 				logger.Info("Stopping subscriber")
 				return

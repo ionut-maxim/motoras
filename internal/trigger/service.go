@@ -13,31 +13,34 @@ type Service struct {
 	locker Locker
 	logger *slog.Logger
 
-	ownedTriggers map[int64]context.CancelFunc
+	ownedTriggers map[int64]*triggerWorker
 	mu            sync.RWMutex
 
 	once sync.Once
+	wg   sync.WaitGroup
 
 	resultCh chan Result
 }
 
+type triggerWorker struct {
+	cancel   context.CancelFunc
+	updateCh chan Trigger
+}
+
 type Option func(*Service)
 
-// WithStore sets the underlying storage for workflow triggers
 func WithStore(store Store) Option {
 	return func(s *Service) {
 		s.store = store
 	}
 }
 
-// WithLocker sets a distributed locker for the triggers
 func WithLocker(locker Locker) Option {
 	return func(s *Service) {
 		s.locker = locker
 	}
 }
 
-// WithLogger sets a logger if not a default one is used
 func WithLogger(logger *slog.Logger) Option {
 	return func(s *Service) {
 		s.logger = logger
@@ -47,7 +50,7 @@ func WithLogger(logger *slog.Logger) Option {
 func New(options ...Option) *Service {
 	service := &Service{
 		resultCh:      make(chan Result),
-		ownedTriggers: make(map[int64]context.CancelFunc),
+		ownedTriggers: make(map[int64]*triggerWorker),
 	}
 	for _, option := range options {
 		option(service)
@@ -87,7 +90,10 @@ func (s *Service) Start(ctx context.Context) (<-chan Result, error) {
 		if err = s.startTriggerWorker(ctx, trigger); err != nil {
 			return nil, fmt.Errorf("service: %w", err)
 		}
+	}
 
+	if err = s.startUpdateListener(ctx); err != nil {
+		return nil, fmt.Errorf("service: failed to start update listener: %w", err)
 	}
 
 	go func() {
@@ -100,15 +106,60 @@ func (s *Service) Start(ctx context.Context) (<-chan Result, error) {
 
 func (s *Service) Shutdown() {
 	s.mu.Lock()
-
-	for _, cancel := range s.ownedTriggers {
-		cancel()
+	for _, worker := range s.ownedTriggers {
+		worker.cancel()
+		close(worker.updateCh)
 	}
 	s.mu.Unlock()
+
+	s.wg.Wait()
 
 	s.once.Do(func() {
 		close(s.resultCh)
 	})
+}
+
+func (s *Service) startUpdateListener(ctx context.Context) error {
+	updateCh, err := s.store.Subscribe(ctx)
+	if err != nil {
+		return err
+	}
+
+	s.wg.Add(1)
+	go func() {
+		defer s.wg.Done()
+
+		for {
+			select {
+			case update, ok := <-updateCh:
+				if !ok {
+					return
+				}
+
+				s.mu.RLock()
+				worker, exists := s.ownedTriggers[update.ID]
+				s.mu.RUnlock()
+
+				if exists {
+					select {
+					case worker.updateCh <- update:
+						s.logger.Debug("Sent update to trigger worker", "trigger.id", update.ID)
+					case <-ctx.Done():
+						return
+					}
+				} else {
+					if err = s.startTriggerWorker(ctx, update); err != nil {
+						s.logger.Error("Failed to start worker for new trigger", "trigger.id", update.ID, "err", err)
+					}
+				}
+
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	return nil
 }
 
 func (s *Service) startTriggerWorker(ctx context.Context, trigger Trigger) error {
@@ -120,14 +171,19 @@ func (s *Service) startTriggerWorker(ctx context.Context, trigger Trigger) error
 	}
 
 	workerCtx, cancel := context.WithCancel(ctx)
+	updateCh := make(chan Trigger, 1)
 
 	s.mu.Lock()
-	s.ownedTriggers[trigger.ID] = cancel
+	s.ownedTriggers[trigger.ID] = &triggerWorker{
+		cancel:   cancel,
+		updateCh: updateCh,
+	}
 	s.mu.Unlock()
 
+	s.wg.Add(1)
 	go func() {
+		defer s.wg.Done()
 		defer func() {
-			// Cleanup on exit
 			s.mu.Lock()
 			delete(s.ownedTriggers, trigger.ID)
 			s.mu.Unlock()
@@ -144,16 +200,70 @@ func (s *Service) startTriggerWorker(ctx context.Context, trigger Trigger) error
 			return
 		}
 
-		triggerCh, err := subscriber.Subscribe(workerCtx, logger)
+		var subCtx context.Context
+		var subCancel context.CancelFunc
+		var triggerCh <-chan Result
+
+		subCtx, subCancel = context.WithCancel(workerCtx)
+		triggerCh, err = subscriber.Subscribe(subCtx, logger)
 		if err != nil {
 			logger.Error("Failed to subscribe", "err", err)
+			subCancel()
 			return
 		}
 
-		for result := range triggerCh {
+		currentTrigger := trigger
+
+		for {
 			select {
-			case s.resultCh <- result:
+			case result, ok := <-triggerCh:
+				if !ok {
+					subCancel()
+					return
+				}
+				select {
+				case s.resultCh <- result:
+				case <-workerCtx.Done():
+					subCancel()
+					return
+				}
+
+			case updatedTrigger := <-updateCh:
+				logger = s.logger.WithGroup("trigger").With("id", updatedTrigger.ID, "name", updatedTrigger.Name)
+				logger.Info("Received trigger update", "old.data", currentTrigger.Data, "new.data", updatedTrigger.Data)
+				currentTrigger = updatedTrigger
+
+				subCancel()
+
+				// Drain the old subscriber's channel to ensure all messages are processed
+				// before starting a new subscriber.
+				for range triggerCh {
+				}
+
+				newSubscriber, err := updatedTrigger.mapSubscriber(workerCtx)
+				if err != nil {
+					logger.Error("Failed to create new subscriber", "err", err)
+					return
+				}
+
+				if err = newSubscriber.Decode(updatedTrigger.Data); err != nil {
+					logger.Error("Failed to decode updated trigger", "err", err)
+					return
+				}
+
+				subCtx, subCancel = context.WithCancel(workerCtx)
+				triggerCh, err = newSubscriber.Subscribe(subCtx, logger)
+				if err != nil {
+					logger.Error("Failed to subscribe with updated trigger", "err", err)
+					subCancel()
+					return
+				}
+
+				subscriber = newSubscriber
+				logger.Info("Subscriber restarted with new configuration")
+
 			case <-workerCtx.Done():
+				subCancel()
 				return
 			}
 		}
