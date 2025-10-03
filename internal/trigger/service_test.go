@@ -2,7 +2,6 @@ package trigger
 
 import (
 	"context"
-	"log/slog"
 	"testing"
 	"testing/synctest"
 	"time"
@@ -16,7 +15,7 @@ func Test_SyncService(t *testing.T) {
 		store := newMockStore()
 		defer store.Shutdown(ctx)
 
-		service := New(WithStore(store), WithLogger(slog.New(slog.DiscardHandler)))
+		service := New(WithStore(store))
 		results, err := service.Start(ctx)
 		if err != nil {
 			t.Fatal(err)

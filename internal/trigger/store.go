@@ -63,7 +63,10 @@ func (m *mockStore) Add(_ context.Context, trigger Trigger) error {
 	m.mu.Unlock()
 
 	if m.updateCh != nil {
-		m.updateCh <- trigger
+		select {
+		case m.updateCh <- trigger:
+		default:
+		}
 	}
 	return nil
 }
@@ -88,7 +91,10 @@ func (m *mockStore) Update(_ context.Context, trigger Trigger) error {
 	}
 
 	if m.updateCh != nil {
-		m.updateCh <- trigger
+		select {
+		case m.updateCh <- trigger:
+		default:
+		}
 	}
 	return nil
 }
