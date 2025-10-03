@@ -2,12 +2,17 @@ package trigger
 
 import (
 	"context"
+	"sync"
 
 	"github.com/jackc/pgx/v5"
 )
 
 type Store interface {
 	All(ctx context.Context) ([]Trigger, error)
+	Subscribe(ctx context.Context) (<-chan Trigger, error)
+	Add(ctx context.Context, trigger Trigger) error
+	Update(ctx context.Context, trigger Trigger) error
+	Shutdown(ctx context.Context)
 }
 
 func defaultStore() Store {
@@ -16,6 +21,9 @@ func defaultStore() Store {
 
 type mockStore struct {
 	triggers []Trigger
+	mu       sync.RWMutex
+
+	updateCh chan Trigger
 }
 
 func newMockStore() *mockStore {
@@ -37,11 +45,52 @@ func newMockStore() *mockStore {
 			},
 		},
 	}
-	return &mockStore{triggers}
+	return &mockStore{triggers: triggers, updateCh: make(chan Trigger)}
 }
 
-func (s *mockStore) All(ctx context.Context) ([]Trigger, error) {
-	return s.triggers, nil
+func (m *mockStore) All(ctx context.Context) ([]Trigger, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	result := make([]Trigger, len(m.triggers))
+	copy(result, m.triggers)
+	return result, nil
+}
+
+func (m *mockStore) Add(ctx context.Context, trigger Trigger) error {
+	m.mu.Lock()
+	m.triggers = append(m.triggers, trigger)
+	m.mu.Unlock()
+
+	if m.updateCh != nil {
+		m.updateCh <- trigger
+	}
+	return nil
+}
+
+func (m *mockStore) Subscribe(ctx context.Context) (<-chan Trigger, error) {
+	return m.updateCh, nil
+}
+
+func (m *mockStore) Shutdown(ctx context.Context) {
+	close(m.updateCh)
+}
+
+func (m *mockStore) Update(ctx context.Context, trigger Trigger) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for i, _ := range m.triggers {
+		if m.triggers[i].ID == trigger.ID {
+			m.triggers[i].Name = trigger.Name
+			m.triggers[i].Data = trigger.Data
+		}
+	}
+
+	if m.updateCh != nil {
+		m.updateCh <- trigger
+	}
+	return nil
 }
 
 type postgresStore struct {
