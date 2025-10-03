@@ -80,7 +80,7 @@ func (m *mockStore) Update(ctx context.Context, trigger Trigger) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	for i, _ := range m.triggers {
+	for i := range m.triggers {
 		if m.triggers[i].ID == trigger.ID {
 			m.triggers[i].Name = trigger.Name
 			m.triggers[i].Data = trigger.Data
