@@ -48,7 +48,7 @@ func newMockStore() *mockStore {
 	return &mockStore{triggers: triggers, updateCh: make(chan Trigger)}
 }
 
-func (m *mockStore) All(ctx context.Context) ([]Trigger, error) {
+func (m *mockStore) All(_ context.Context) ([]Trigger, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -57,7 +57,7 @@ func (m *mockStore) All(ctx context.Context) ([]Trigger, error) {
 	return result, nil
 }
 
-func (m *mockStore) Add(ctx context.Context, trigger Trigger) error {
+func (m *mockStore) Add(_ context.Context, trigger Trigger) error {
 	m.mu.Lock()
 	m.triggers = append(m.triggers, trigger)
 	m.mu.Unlock()
@@ -68,15 +68,15 @@ func (m *mockStore) Add(ctx context.Context, trigger Trigger) error {
 	return nil
 }
 
-func (m *mockStore) Subscribe(ctx context.Context) (<-chan Trigger, error) {
+func (m *mockStore) Subscribe(_ context.Context) (<-chan Trigger, error) {
 	return m.updateCh, nil
 }
 
-func (m *mockStore) Shutdown(ctx context.Context) {
+func (m *mockStore) Shutdown(_ context.Context) {
 	close(m.updateCh)
 }
 
-func (m *mockStore) Update(ctx context.Context, trigger Trigger) error {
+func (m *mockStore) Update(_ context.Context, trigger Trigger) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -101,6 +101,6 @@ func newPostgresStore(conn *pgx.Conn) *postgresStore {
 	return &postgresStore{conn}
 }
 
-func (s *postgresStore) All(ctx context.Context) ([]Trigger, error) {
+func (s *postgresStore) All(_ context.Context) ([]Trigger, error) {
 	return nil, ErrNotImplemented
 }
