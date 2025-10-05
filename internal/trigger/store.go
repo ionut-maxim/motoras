@@ -16,39 +16,21 @@ type Store interface {
 }
 
 func defaultStore() Store {
-	return newMockStore()
+	return NewMockStore()
 }
 
-type mockStore struct {
+type MockStore struct {
 	triggers []Trigger
 	mu       sync.RWMutex
 
 	updateCh chan Trigger
 }
 
-func newMockStore() *mockStore {
-	triggers := []Trigger{
-		{
-			ID:   1,
-			Name: "mock-trigger-1",
-			Type: "mock",
-			Data: map[string]string{
-				"input": "Hello from mock 1",
-			},
-		},
-		{
-			ID:   2,
-			Name: "mock-trigger-2",
-			Type: "mock",
-			Data: map[string]string{
-				"input": "Hello from mock 2",
-			},
-		},
-	}
-	return &mockStore{triggers: triggers, updateCh: make(chan Trigger)}
+func NewMockStore() *MockStore {
+	return &MockStore{triggers: []Trigger{}, updateCh: make(chan Trigger)}
 }
 
-func (m *mockStore) All(_ context.Context) ([]Trigger, error) {
+func (m *MockStore) All(_ context.Context) ([]Trigger, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -57,7 +39,7 @@ func (m *mockStore) All(_ context.Context) ([]Trigger, error) {
 	return result, nil
 }
 
-func (m *mockStore) Add(_ context.Context, trigger Trigger) error {
+func (m *MockStore) Add(_ context.Context, trigger Trigger) error {
 	m.mu.Lock()
 	m.triggers = append(m.triggers, trigger)
 	m.mu.Unlock()
@@ -71,15 +53,15 @@ func (m *mockStore) Add(_ context.Context, trigger Trigger) error {
 	return nil
 }
 
-func (m *mockStore) Subscribe(_ context.Context) (<-chan Trigger, error) {
+func (m *MockStore) Subscribe(_ context.Context) (<-chan Trigger, error) {
 	return m.updateCh, nil
 }
 
-func (m *mockStore) Shutdown(_ context.Context) {
+func (m *MockStore) Shutdown(_ context.Context) {
 	close(m.updateCh)
 }
 
-func (m *mockStore) Update(_ context.Context, trigger Trigger) error {
+func (m *MockStore) Update(_ context.Context, trigger Trigger) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 

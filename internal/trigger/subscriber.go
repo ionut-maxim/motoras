@@ -7,15 +7,22 @@ import (
 	"time"
 
 	"github.com/go-viper/mapstructure/v2"
+	"github.com/google/uuid"
 )
 
 type Subscriber interface {
-	Subscribe(ctx context.Context, logger *slog.Logger) (<-chan Result, error)
+	Subscribe(ctx context.Context, logger *slog.Logger, workflowID uuid.UUID) (<-chan Result, error)
 	Decode(input any) error
 }
 
+// TODO: Transform Result into an interface
+//   - It should have a method to return data
+//   - Another method that maybe Executes a worfklow, or returns a function that executes something based on the trigger or maybe
+//     it just returns the workflow ID
+//   - Maybe another function that evaluates the data using the expression parser and returns a boolean?
 type Result struct {
-	Data any
+	Data       any
+	WorkflowID uuid.UUID
 }
 
 type mockSubscriber struct {
@@ -29,7 +36,7 @@ func (m *mockSubscriber) Decode(input any) error {
 	return nil
 }
 
-func (m *mockSubscriber) Subscribe(ctx context.Context, logger *slog.Logger) (<-chan Result, error) {
+func (m *mockSubscriber) Subscribe(ctx context.Context, logger *slog.Logger, workflowID uuid.UUID) (<-chan Result, error) {
 	results := make(chan Result)
 	ticker := time.Tick(5 * time.Second)
 
@@ -43,12 +50,11 @@ func (m *mockSubscriber) Subscribe(ctx context.Context, logger *slog.Logger) (<-
 				logger.Debug("Received a message", slog.String("message", data))
 
 				select {
-				case results <- Result{Data: data}:
+				case results <- Result{Data: data, WorkflowID: workflowID}:
 				case <-ctx.Done():
 					logger.Info("Stopping subscriber")
 					return
 				}
-
 			case <-ctx.Done():
 				logger.Info("Stopping subscriber")
 				return

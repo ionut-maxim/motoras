@@ -64,10 +64,14 @@ func New(options ...Option) *Service {
 		service.locker = defaultLocker()
 	}
 
+	serviceAttr := slog.String("service", "trigger")
+
 	if service.logger == nil {
 		handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})
-		logger := slog.New(handler).With(slog.String("service", "trigger"))
+		logger := slog.New(handler).With(serviceAttr)
 		service.logger = logger
+	} else {
+		service.logger = service.logger.With(serviceAttr)
 	}
 
 	return service
@@ -81,7 +85,7 @@ func (s *Service) Start(ctx context.Context) (<-chan Result, error) {
 
 	for _, trigger := range triggers {
 		s.mu.RLock()
-		_, exists := s.ownedTriggers[trigger.ID]
+		_, exists := s.ownedTriggers[trigger.LockID]
 		s.mu.RUnlock()
 		if exists {
 			continue
@@ -137,7 +141,7 @@ func (s *Service) startUpdateListener(ctx context.Context) error {
 				}
 
 				s.mu.RLock()
-				worker, exists := s.ownedTriggers[update.ID]
+				worker, exists := s.ownedTriggers[update.LockID]
 				s.mu.RUnlock()
 
 				if exists {
@@ -174,7 +178,7 @@ func (s *Service) startTriggerWorker(ctx context.Context, trigger Trigger) error
 	updateCh := make(chan Trigger, 1)
 
 	s.mu.Lock()
-	s.ownedTriggers[trigger.ID] = &triggerWorker{
+	s.ownedTriggers[trigger.LockID] = &triggerWorker{
 		cancel:   cancel,
 		updateCh: updateCh,
 	}
@@ -185,10 +189,10 @@ func (s *Service) startTriggerWorker(ctx context.Context, trigger Trigger) error
 		defer s.wg.Done()
 		defer func() {
 			s.mu.Lock()
-			delete(s.ownedTriggers, trigger.ID)
+			delete(s.ownedTriggers, trigger.LockID)
 			s.mu.Unlock()
 
-			if err := s.locker.Release(ctx, trigger.ID); err != nil {
+			if err := s.locker.Release(ctx, trigger.LockID); err != nil {
 				logger.Error("Failed to release lock", "err", err)
 			}
 		}()
@@ -205,7 +209,7 @@ func (s *Service) startTriggerWorker(ctx context.Context, trigger Trigger) error
 		var triggerCh <-chan Result
 
 		subCtx, subCancel = context.WithCancel(workerCtx)
-		triggerCh, err = subscriber.Subscribe(subCtx, logger)
+		triggerCh, err = subscriber.Subscribe(subCtx, logger, trigger.WorkflowID)
 		if err != nil {
 			logger.Error("Failed to subscribe", "err", err)
 			subCancel()
@@ -252,7 +256,7 @@ func (s *Service) startTriggerWorker(ctx context.Context, trigger Trigger) error
 				}
 
 				subCtx, subCancel = context.WithCancel(workerCtx)
-				triggerCh, err = newSubscriber.Subscribe(subCtx, logger)
+				triggerCh, err = newSubscriber.Subscribe(subCtx, logger, updatedTrigger.WorkflowID)
 				if err != nil {
 					logger.Error("Failed to subscribe with updated trigger", "err", err)
 					subCancel()

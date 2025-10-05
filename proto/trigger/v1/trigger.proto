@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package trigger.v1;
+
+import "google/protobuf/any.proto";
+import "buf/validate/validate.proto";
+
+option go_package = "github.com/ionut-maxim/motoras/api/trigger/v1;triggerv1";
+
+message Trigger {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  string name = 2;
+  string type = 3;
+  string workflow_id = 4 [(buf.validate.field).string.uuid = true];
+  google.protobuf.Any data = 5;
+}
+
+message CreateRequest {
+  Trigger trigger = 1;
+}
+
+message CreateResponse {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+
+message UpdateRequest {
+  Trigger trigger = 1;
+}
+
+message UpdateResponse {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+
+message ListRequest {
+}
+
+message ListResponse {
+  repeated Trigger triggers = 1;
+}
+
+service TriggerService {
+  rpc Create(CreateRequest) returns (CreateResponse) {}
+  rpc Update(UpdateRequest) returns (UpdateResponse) {}
+  rpc List(ListRequest) returns (ListResponse) {}
+}

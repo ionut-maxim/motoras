@@ -12,7 +12,7 @@ func Test_SyncService(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		defer cancel()
 
-		store := newMockStore()
+		store := NewMockStore()
 		defer store.Shutdown(ctx)
 
 		service := New(WithStore(store))

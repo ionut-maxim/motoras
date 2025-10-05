@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package workflow.v1;
+
+option go_package = "github.com/ionut-maxim/motoras/api/workflow/v1;workflowv1";
+
+message CreateRequest {
+  string manifest = 1;
+}
+
+message CreateResponse {
+  string id = 1;
+}
+
+service WorkflowService {
+  rpc Create(CreateRequest) returns (CreateResponse) {}
+}

@@ -2,73 +2,41 @@ package main
 
 import (
 	"context"
-	"encoding/gob"
-	"fmt"
 	"log/slog"
 	"os"
-	"time"
 
-	"github.com/dbos-inc/dbos-transact-golang/dbos"
+	"github.com/charmbracelet/log"
 
-	"github.com/ionut-maxim/motoras/internal/workflow"
+	"github.com/ionut-maxim/motoras/internal/application"
+	"github.com/ionut-maxim/motoras/internal/config"
 )
 
-type Engine struct {
-	logger *slog.Logger
-}
-
 func main() {
-	// Initialize a DBOS context
-	ctx, err := dbos.NewDBOSContext(context.Background(), dbos.Config{
-		DatabaseURL: os.Getenv("DBOS_SYSTEM_DATABASE_URL"),
-		AppName:     "myapp",
-		Logger:      slog.New(slog.NewJSONHandler(os.Stdout, nil)),
+	ctx := context.Background()
+
+	// TODO: Log handlers should be set by the application config
+	prettyHandler := log.NewWithOptions(os.Stderr, log.Options{
+		Level:           log.DebugLevel,
+		ReportTimestamp: true,
+		ReportCaller:    true,
 	})
+
+	logger := slog.New(prettyHandler)
+
+	cfg, err := config.Load()
 	if err != nil {
-		panic(err)
+		logger.Error("Unable to load config", "error", err)
+		os.Exit(1)
 	}
 
-	wf := `
-	{
-	  "steps": [
-		{
-		  "type": "if",
-		  "spec": {
-			"name": "valid_name",
-			"condition": "test > 1"
-		  }
-		},
-		{
-		  "type": "action",
-		  "spec": {
-			"name": "valid_name2",
-			"inputs": {
-			  "test": 1
-			}
-		  }
-		}
-	  ]
-	}`
-
-	// Register a workflow
-	dbos.RegisterWorkflow(ctx, workflow.Run, dbos.WithWorkflowName("workflow"))
-	gob.Register(map[string]interface{}{})
-
-	// Launch DBOS
-	err = ctx.Launch()
+	app, err := application.New(cfg, logger)
 	if err != nil {
-		panic(err)
+		logger.Error("Failed to create application", "error", err)
+		os.Exit(1)
 	}
-	defer ctx.Shutdown(3 * time.Second)
 
-	// Run a durable workflow and get its result
-	handle, err := dbos.RunWorkflow(ctx, workflow.Run, []byte(wf))
-	if err != nil {
-		fmt.Println(err)
+	if err = app.Start(ctx); err != nil {
+		logger.Error("Failed to start application", "error", err)
+		os.Exit(1)
 	}
-	res, err := handle.GetResult()
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println("Workflow result:", res)
 }

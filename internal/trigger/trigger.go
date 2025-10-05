@@ -2,13 +2,17 @@ package trigger
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 type Trigger struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
-	Type string `json:"type"`
-	Data any    `json:"data"`
+	LockID     int64     `json:"lock_id"`
+	ID         uuid.UUID `json:"id"`
+	Name       string    `json:"name"`
+	Type       string    `json:"type"`
+	WorkflowID uuid.UUID `json:"workflow_id"`
+	Data       any       `json:"data"`
 }
 
 var triggerRegistry = map[string]func() Subscriber{

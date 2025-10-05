@@ -3,3 +3,7 @@ _.file = '.env'
 
 [tools]
 go = "latest"
+"go:connectrpc.com/connect/cmd/protoc-gen-connect-go" = "latest"
+"go:github.com/bufbuild/buf/cmd/buf" = "latest"
+"go:github.com/fullstorydev/grpcurl/cmd/grpcurl" = "latest"
+"go:google.golang.org/protobuf/cmd/protoc-gen-go" = "latest"

@@ -2,25 +2,21 @@ package workflow
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/dbos-inc/dbos-transact-golang/dbos"
+	"github.com/google/uuid"
 )
 
 type Workflow struct {
-	Steps []Step `json:"steps"`
+	ID    uuid.UUID `json:"id"`
+	Steps []Step    `json:"steps"`
 }
 
-func Run(ctx dbos.DBOSContext, payload []byte) (Env, error) {
+func run(ctx dbos.DBOSContext, wf Workflow) (Env, error) {
 	var env = make(map[string]any)
 
-	var wf Workflow
-	if err := json.Unmarshal(payload, &wf); err != nil {
-		return nil, err
-	}
-
-	env, err := processSteps(ctx, wf.Steps, env)
+	env, err := steps(ctx, wf.Steps, env)
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +24,7 @@ func Run(ctx dbos.DBOSContext, payload []byte) (Env, error) {
 	return env, nil
 }
 
-func processSteps(ctx dbos.DBOSContext, steps []Step, env Env) (Env, error) {
+func steps(ctx dbos.DBOSContext, steps []Step, env Env) (Env, error) {
 	for _, step := range steps {
 		var err error
 		if err = step.Spec.Validate(env); err != nil {
