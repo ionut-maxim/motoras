@@ -11,23 +11,23 @@ import (
 )
 
 type Subscriber interface {
-	Subscribe(ctx context.Context, logger *slog.Logger, workflowID uuid.UUID) (<-chan Result, error)
+	Subscribe(ctx context.Context, logger *slog.Logger, workflowID uuid.UUID) (<-chan Event, error)
 	Decode(input any) error
 }
 
-// TODO: Transform Result into an interface
-//   - It should have a method to return data
-//   - Another method that maybe Executes a worfklow, or returns a function that executes something based on the trigger or maybe
-//     it just returns the workflow ID
-//   - Maybe another function that evaluates the data using the expression parser and returns a boolean?
-type Result struct {
-	Data       any
-	WorkflowID uuid.UUID
+type Event interface {
+	Workflow() uuid.UUID
 }
 
 type mockSubscriber struct {
 	Input string `json:"input"`
 }
+
+type mockEvent struct {
+	workflowID uuid.UUID
+}
+
+func (m mockEvent) Workflow() uuid.UUID { return m.workflowID }
 
 func (m *mockSubscriber) Decode(input any) error {
 	if err := mapstructure.Decode(input, &m); err != nil {
@@ -36,8 +36,8 @@ func (m *mockSubscriber) Decode(input any) error {
 	return nil
 }
 
-func (m *mockSubscriber) Subscribe(ctx context.Context, logger *slog.Logger, workflowID uuid.UUID) (<-chan Result, error) {
-	results := make(chan Result)
+func (m *mockSubscriber) Subscribe(ctx context.Context, logger *slog.Logger, workflowID uuid.UUID) (<-chan Event, error) {
+	results := make(chan Event)
 	ticker := time.Tick(5 * time.Second)
 
 	go func() {
@@ -50,7 +50,7 @@ func (m *mockSubscriber) Subscribe(ctx context.Context, logger *slog.Logger, wor
 				logger.Debug("Received a message", slog.String("message", data))
 
 				select {
-				case results <- Result{Data: data, WorkflowID: workflowID}:
+				case results <- mockEvent{workflowID: workflowID}:
 				case <-ctx.Done():
 					logger.Info("Stopping subscriber")
 					return

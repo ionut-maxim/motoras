@@ -12,7 +12,7 @@ message Trigger {
   string name = 2;
   string type = 3;
   string workflow_id = 4 [(buf.validate.field).string.uuid = true];
-  google.protobuf.Any data = 5;
+  google.protobuf.Any data = 5 [(buf.validate.field).required = true];
 }
 
 message CreateRequest {

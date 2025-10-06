@@ -360,14 +360,14 @@ var File_trigger_v1_trigger_proto protoreflect.FileDescriptor
 const file_trigger_v1_trigger_proto_rawDesc = "" +
 	"\n" +
 	"\x18trigger/v1/trigger.proto\x12\n" +
-	"trigger.v1\x1a\x19google/protobuf/any.proto\x1a\x1bbuf/validate/validate.proto\"\xa0\x01\n" +
+	"trigger.v1\x1a\x19google/protobuf/any.proto\x1a\x1bbuf/validate/validate.proto\"\xa8\x01\n" +
 	"\aTrigger\x12\x18\n" +
 	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
 	"\x04type\x18\x03 \x01(\tR\x04type\x12)\n" +
 	"\vworkflow_id\x18\x04 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\n" +
-	"workflowId\x12(\n" +
-	"\x04data\x18\x05 \x01(\v2\x14.google.protobuf.AnyR\x04data\">\n" +
+	"workflowId\x120\n" +
+	"\x04data\x18\x05 \x01(\v2\x14.google.protobuf.AnyB\x06\xbaH\x03\xc8\x01\x01R\x04data\">\n" +
 	"\rCreateRequest\x12-\n" +
 	"\atrigger\x18\x01 \x01(\v2\x13.trigger.v1.TriggerR\atrigger\"*\n" +
 	"\x0eCreateResponse\x12\x18\n" +

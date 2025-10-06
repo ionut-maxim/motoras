@@ -19,7 +19,7 @@ type Service struct {
 	once sync.Once
 	wg   sync.WaitGroup
 
-	resultCh chan Result
+	eventCh chan Event
 }
 
 type triggerWorker struct {
@@ -49,7 +49,7 @@ func WithLogger(logger *slog.Logger) Option {
 
 func New(options ...Option) *Service {
 	service := &Service{
-		resultCh:      make(chan Result),
+		eventCh:       make(chan Event),
 		ownedTriggers: make(map[int64]*triggerWorker),
 	}
 	for _, option := range options {
@@ -77,7 +77,7 @@ func New(options ...Option) *Service {
 	return service
 }
 
-func (s *Service) Start(ctx context.Context) (<-chan Result, error) {
+func (s *Service) Start(ctx context.Context) (<-chan Event, error) {
 	triggers, err := s.store.All(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("service: %w", err)
@@ -105,7 +105,7 @@ func (s *Service) Start(ctx context.Context) (<-chan Result, error) {
 		s.Shutdown()
 	}()
 
-	return s.resultCh, nil
+	return s.eventCh, nil
 }
 
 func (s *Service) Shutdown() {
@@ -119,7 +119,7 @@ func (s *Service) Shutdown() {
 	s.wg.Wait()
 
 	s.once.Do(func() {
-		close(s.resultCh)
+		close(s.eventCh)
 	})
 }
 
@@ -206,7 +206,7 @@ func (s *Service) startTriggerWorker(ctx context.Context, trigger Trigger) error
 
 		var subCtx context.Context
 		var subCancel context.CancelFunc
-		var triggerCh <-chan Result
+		var triggerCh <-chan Event
 
 		subCtx, subCancel = context.WithCancel(workerCtx)
 		triggerCh, err = subscriber.Subscribe(subCtx, logger, trigger.WorkflowID)
@@ -226,7 +226,7 @@ func (s *Service) startTriggerWorker(ctx context.Context, trigger Trigger) error
 					return
 				}
 				select {
-				case s.resultCh <- result:
+				case s.eventCh <- result:
 				case <-workerCtx.Done():
 					subCancel()
 					return

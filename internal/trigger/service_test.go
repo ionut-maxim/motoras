@@ -5,6 +5,8 @@ import (
 	"testing"
 	"testing/synctest"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 func Test_SyncService(t *testing.T) {
@@ -25,7 +27,7 @@ func Test_SyncService(t *testing.T) {
 			time.Sleep(10 * time.Second)
 
 			newTrigger := Trigger{
-				ID:   3,
+				ID:   uuid.New(),
 				Name: "dynamically-added",
 				Type: "mock",
 				Data: map[string]string{
@@ -41,7 +43,7 @@ func Test_SyncService(t *testing.T) {
 			time.Sleep(10 * time.Second)
 
 			updatedTrigger := Trigger{
-				ID:   1,
+				ID:   uuid.New(),
 				Name: "dynamically-updated",
 				Type: "mock",
 				Data: map[string]string{
@@ -57,7 +59,7 @@ func Test_SyncService(t *testing.T) {
 			time.Sleep(10 * time.Second)
 
 			updatedTrigger = Trigger{
-				ID:   1,
+				ID:   uuid.New(),
 				Name: "dynamically-updated-twice",
 				Type: "mock",
 				Data: map[string]string{

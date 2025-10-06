@@ -64,6 +64,7 @@ func (s *Service) StartWorkflow(ctx context.Context, id uuid.UUID) error {
 		return err
 	}
 
+	s.logger.Debug("Starting workflow", "id", id)
 	_, err = run(s.ctx, wf)
 	if err != nil {
 		return err

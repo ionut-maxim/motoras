@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
@@ -20,9 +21,19 @@ func NewTriggerHandler(store triggerservice.Store) *TriggerHandler {
 }
 
 func (t *TriggerHandler) Create(ctx context.Context, req *connect.Request[triggerv1.CreateRequest]) (*connect.Response[triggerv1.CreateResponse], error) {
-	workflowID, err := uuid.Parse(req.Msg.Trigger.WorkflowId)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+	var (
+		err        error
+		workflowID uuid.UUID
+	)
+	if req.Msg.Trigger == nil {
+		return nil, errors.New("message is required")
+	}
+
+	if req.Msg.Trigger.WorkflowId != "" {
+		workflowID, err = uuid.Parse(req.Msg.Trigger.WorkflowId)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
 	}
 
 	id, err := uuid.NewV7()
