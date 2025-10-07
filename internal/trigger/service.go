@@ -7,6 +7,9 @@ import (
 	"os"
 	"sync"
 	"time"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric"
 )
 
 type Service struct {
@@ -21,6 +24,12 @@ type Service struct {
 	wg   sync.WaitGroup
 
 	eventCh chan Event
+
+	// OpenTelemetry metrics
+	meter              metric.Meter
+	eventChSizeGauge   metric.Int64ObservableGauge
+	eventsProcessed    metric.Int64Counter
+	metricsInitialized bool
 }
 
 type triggerWorker struct {
@@ -55,6 +64,12 @@ func WithEventBufferSize(bufferSize int) Option {
 	}
 }
 
+func WithMeterProvider(provider metric.MeterProvider) Option {
+	return func(s *Service) {
+		s.meter = provider.Meter("github.com/ionut-maxim/motoras/internal/trigger")
+	}
+}
+
 func New(options ...Option) *Service {
 	service := &Service{
 		eventCh:       make(chan Event, 100),
@@ -82,7 +97,55 @@ func New(options ...Option) *Service {
 		service.logger = service.logger.With(serviceAttr)
 	}
 
+	// Initialize metrics if meter is provided
+	if service.meter == nil {
+		service.meter = otel.Meter("github.com/ionut-maxim/motoras/internal/trigger")
+	}
+
+	if err := service.initMetrics(); err != nil {
+		service.logger.Warn("Failed to initialize metrics", "err", err)
+	}
+
 	return service
+}
+
+func (s *Service) initMetrics() error {
+	var err error
+
+	// Create observable gauge for event channel size
+	s.eventChSizeGauge, err = s.meter.Int64ObservableGauge(
+		"trigger.event_channel.size",
+		metric.WithDescription("Current number of events in the trigger event channel"),
+		metric.WithUnit("{events}"),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create event channel size gauge: %w", err)
+	}
+
+	// Register callback to observe channel size
+	_, err = s.meter.RegisterCallback(
+		func(ctx context.Context, observer metric.Observer) error {
+			observer.ObserveInt64(s.eventChSizeGauge, int64(len(s.eventCh)))
+			return nil
+		},
+		s.eventChSizeGauge,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to register channel size callback: %w", err)
+	}
+
+	// Create counter for total events processed
+	s.eventsProcessed, err = s.meter.Int64Counter(
+		"trigger.events.processed",
+		metric.WithDescription("Total number of events processed by the trigger service"),
+		metric.WithUnit("{events}"),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create events processed counter: %w", err)
+	}
+
+	s.metricsInitialized = true
+	return nil
 }
 
 func (s *Service) Start(ctx context.Context) (<-chan Event, error) {
@@ -270,6 +333,10 @@ func (s *Service) startTriggerWorkerInternal(ctx context.Context, trigger Trigge
 				}
 				select {
 				case s.eventCh <- event:
+					// Increment events counter
+					if s.metricsInitialized {
+						s.eventsProcessed.Add(workerCtx, 1)
+					}
 				case <-workerCtx.Done():
 					return
 				}

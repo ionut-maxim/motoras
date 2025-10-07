@@ -99,9 +99,10 @@ func Test_WorkflowWithHTTPStep(t *testing.T) {
 	}
 	t.Logf("Workflow created with ID: %s", workflow.Id)
 
-	// Create a trigger that fires every 5 seconds
-	triggerData := map[string]string{
-		"input": "http-test-trigger",
+	// Create a trigger that fires every 1 second
+	triggerData := map[string]any{
+		"input":         "http-test-trigger",
+		"tick_interval": "1s",
 	}
 	triggerDataJSON, err := json.Marshal(triggerData)
 	if err != nil {
@@ -126,8 +127,8 @@ func Test_WorkflowWithHTTPStep(t *testing.T) {
 	t.Logf("Trigger created successfully")
 
 	// Wait for the file to be created (with timeout)
-	// The mock trigger fires every 5 seconds, so we should see the file within ~10 seconds
-	timeout := time.After(30 * time.Second)
+	// The mock trigger fires every 1 second, so we should see the file within ~3-5 seconds
+	timeout := time.After(10 * time.Second)
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 

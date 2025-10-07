@@ -92,6 +92,7 @@ Key files:
 - `subscriber.go`: Interface for trigger implementations (e.g., cron, webhook)
 - `lock.go`: Distributed locking mechanism
 - `store.go`: Trigger persistence interface with filesystem and mock implementations
+- `METRICS.md`: OpenTelemetry metrics documentation for monitoring and load balancing
 
 **Workflow Service** (`internal/workflow`): Orchestrates workflow execution using DBOS Transact for durability and
 recoverability. Each workflow consists of multiple steps executed sequentially. DBOS ensures exactly-once execution
@@ -131,6 +132,18 @@ Server runs on port 8080 by default, configurable via listener injection for tes
 5. Workflow Service executes steps sequentially via DBOS
 6. Each step has access to the workflow Env for passing data between steps
 
+### Observability
+
+**OpenTelemetry Metrics**: The trigger service exposes metrics for monitoring event processing and detecting back
+pressure:
+
+- `trigger.event_channel.size` (Gauge): Current number of events buffered in the event channel. High values indicate
+  back pressure and can be used for load balancing decisions.
+- `trigger.events.processed` (Counter): Total number of events processed. Useful for monitoring throughput and detecting
+  anomalies.
+
+See `internal/trigger/METRICS.md` for detailed documentation on metrics, configuration, and alerting recommendations.
+
 ### Testing Strategy
 
 The codebase uses constructor injection and interface-based design for testability:
@@ -149,6 +162,9 @@ internal/
   expression/         - Expression evaluation for workflows
   server/             - HTTP/ConnectRPC API handlers
   trigger/            - Trigger management and workers
+    subscribers/      - Trigger subscriber implementations
+      git/            - Git repository monitoring (commits, tags)
+      mock/           - Mock subscriber for testing
   workflow/           - Workflow orchestration
 proto/                - Protocol Buffer definitions
   trigger/v1/         - Trigger service API
