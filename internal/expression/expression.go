@@ -155,7 +155,11 @@ func setFieldValue(field reflect.Value, value any) error {
 		field.SetString(fmt.Sprintf("%v", value))
 	case reflect.Interface:
 		// Set value as-is for interface{}/any fields
-		field.Set(reflect.ValueOf(value))
+		if value == nil {
+			field.Set(reflect.Zero(field.Type()))
+		} else {
+			field.Set(reflect.ValueOf(value))
+		}
 	case reflect.Map:
 		// For map fields, ensure the value is assignable
 		if value == nil {

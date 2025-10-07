@@ -2,9 +2,19 @@ package workflow
 
 import (
 	"context"
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
 )
+
+func init() {
+	// Register step types for gob encoding (required by DBOS)
+	gob.Register(&HTTP{})
+	gob.Register(&Action{})
+	gob.Register(&If{})
+	// Register map types that may appear in step fields (e.g., HTTP.Body, Env)
+	gob.Register(map[string]any{})
+}
 
 type StepType string
 

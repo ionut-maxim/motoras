@@ -9,6 +9,10 @@ import (
 
 	"github.com/ionut-maxim/motoras/internal/application"
 	"github.com/ionut-maxim/motoras/internal/config"
+
+	// Register trigger subscribers
+	_ "github.com/ionut-maxim/motoras/internal/trigger/subscribers/git"
+	_ "github.com/ionut-maxim/motoras/internal/trigger/subscribers/mock"
 )
 
 func main() {

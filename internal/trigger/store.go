@@ -2,9 +2,8 @@ package trigger
 
 import (
 	"context"
-	"sync"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/google/uuid"
 )
 
 type Store interface {
@@ -15,80 +14,30 @@ type Store interface {
 	Shutdown(ctx context.Context)
 }
 
+type Trigger struct {
+	InternalID int64     `json:"internal_id"` // Database primary key, used for distributed locking
+	ID         uuid.UUID `json:"id"`          // Public/external identifier
+	Name       string    `json:"name"`
+	Type       string    `json:"type"`
+	WorkflowID uuid.UUID `json:"workflow_id"`
+	Data       any       `json:"data"`
+}
+
+var triggerRegistry = map[string]func() Subscriber{}
+
+// RegisterSubscriber registers a subscriber factory for a given type
+func RegisterSubscriber(subscriberType string, factory func() Subscriber) {
+	triggerRegistry[subscriberType] = factory
+}
+
+func (t *Trigger) mapSubscriber(_ context.Context) (Subscriber, error) {
+	factory, ok := triggerRegistry[t.Type]
+	if !ok {
+		return nil, ErrUnknownSubscriberType
+	}
+	return factory(), nil
+}
+
 func defaultStore() Store {
 	return NewMockStore()
-}
-
-type MockStore struct {
-	triggers []Trigger
-	mu       sync.RWMutex
-
-	updateCh chan Trigger
-}
-
-func NewMockStore() *MockStore {
-	return &MockStore{triggers: []Trigger{}, updateCh: make(chan Trigger)}
-}
-
-func (m *MockStore) All(_ context.Context) ([]Trigger, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	result := make([]Trigger, len(m.triggers))
-	copy(result, m.triggers)
-	return result, nil
-}
-
-func (m *MockStore) Add(_ context.Context, trigger Trigger) error {
-	m.mu.Lock()
-	m.triggers = append(m.triggers, trigger)
-	m.mu.Unlock()
-
-	if m.updateCh != nil {
-		select {
-		case m.updateCh <- trigger:
-		default:
-		}
-	}
-	return nil
-}
-
-func (m *MockStore) Subscribe(_ context.Context) (<-chan Trigger, error) {
-	return m.updateCh, nil
-}
-
-func (m *MockStore) Shutdown(_ context.Context) {
-	close(m.updateCh)
-}
-
-func (m *MockStore) Update(_ context.Context, trigger Trigger) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	for i := range m.triggers {
-		if m.triggers[i].ID == trigger.ID {
-			m.triggers[i].Name = trigger.Name
-			m.triggers[i].Data = trigger.Data
-		}
-	}
-
-	if m.updateCh != nil {
-		select {
-		case m.updateCh <- trigger:
-		default:
-		}
-	}
-	return nil
-}
-
-type postgresStore struct {
-	conn *pgx.Conn
-}
-
-func newPostgresStore(conn *pgx.Conn) *postgresStore {
-	return &postgresStore{conn}
-}
-
-func (s *postgresStore) All(_ context.Context) ([]Trigger, error) {
-	return nil, ErrNotImplemented
 }

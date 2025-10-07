@@ -65,6 +65,7 @@ func TestMain(m *testing.M) {
 	workflowClient = workflowv1connect.NewWorkflowServiceClient(httpClient, "http://localhost")
 
 	m.Run()
+	time.Sleep(15 * time.Second)
 }
 
 func createWorkflow(ctx context.Context, t *testing.T, manifest string) *workflowv1.CreateResponse {

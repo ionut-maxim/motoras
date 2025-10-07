@@ -16,6 +16,11 @@ type Service struct {
 	store  Store
 }
 
+// runWorkflow is the workflow function with concrete types for DBOS registration
+func runWorkflow(ctx dbos.DBOSContext, wf Workflow) (Env, error) {
+	return run(ctx, wf)
+}
+
 type Option func(*Service)
 
 func WithLogger(logger *slog.Logger) Option {
@@ -53,6 +58,11 @@ func New(dbosPool *pgxpool.Pool, options ...Option) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
+	dbos.RegisterWorkflow(dbosContext, runWorkflow)
+	err = dbosContext.Launch()
+	if err != nil {
+		return nil, err
+	}
 	s.ctx = dbosContext
 
 	return s, nil
@@ -65,10 +75,9 @@ func (s *Service) StartWorkflow(ctx context.Context, id uuid.UUID) error {
 	}
 
 	s.logger.Debug("Starting workflow", "id", id)
-	_, err = run(s.ctx, wf)
+	_, err = dbos.RunWorkflow(s.ctx, runWorkflow, wf)
 	if err != nil {
 		return err
 	}
-
 	return nil
 }

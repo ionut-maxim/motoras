@@ -80,15 +80,18 @@ func (app *Container) Start(ctx context.Context) error {
 		return err
 	}
 
-	// Listen for trigger events in a goroutine and start workflows per each event
-	// TODO: Parse trigger expressions to figure out if a workflow should start.
+	// Listen for trigger events in a goroutine and route to appropriate handlers
+	// You can route events to different handlers based on trigger metadata
 	go func() {
 		for event := range events {
-			go func() {
-				if err = app.service.workflow.StartWorkflow(ctx, event.Workflow()); err != nil {
-					app.logger.Error("Failed to start workflow", "err", err)
+			go func(event trigger.Event) {
+				t := event.Trigger()
+
+				if err = app.service.workflow.StartWorkflow(ctx, t.WorkflowID); err != nil {
+					app.logger.Error("Failed to start workflow", "err", err, "trigger.id", t.ID)
 				}
-			}()
+
+			}(event)
 		}
 	}()
 

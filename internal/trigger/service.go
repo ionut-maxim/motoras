@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"sync"
+	"time"
 )
 
 type Service struct {
@@ -23,8 +24,9 @@ type Service struct {
 }
 
 type triggerWorker struct {
-	cancel   context.CancelFunc
-	updateCh chan Trigger
+	cancel      context.CancelFunc
+	skipCleanup bool
+	cleanupMu   sync.Mutex
 }
 
 type Option func(*Service)
@@ -47,9 +49,15 @@ func WithLogger(logger *slog.Logger) Option {
 	}
 }
 
+func WithEventBufferSize(bufferSize int) Option {
+	return func(s *Service) {
+		s.eventCh = make(chan Event, bufferSize)
+	}
+}
+
 func New(options ...Option) *Service {
 	service := &Service{
-		eventCh:       make(chan Event),
+		eventCh:       make(chan Event, 100),
 		ownedTriggers: make(map[int64]*triggerWorker),
 	}
 	for _, option := range options {
@@ -84,13 +92,6 @@ func (s *Service) Start(ctx context.Context) (<-chan Event, error) {
 	}
 
 	for _, trigger := range triggers {
-		s.mu.RLock()
-		_, exists := s.ownedTriggers[trigger.LockID]
-		s.mu.RUnlock()
-		if exists {
-			continue
-		}
-
 		if err = s.startTriggerWorker(ctx, trigger); err != nil {
 			return nil, fmt.Errorf("service: %w", err)
 		}
@@ -112,7 +113,6 @@ func (s *Service) Shutdown() {
 	s.mu.Lock()
 	for _, worker := range s.ownedTriggers {
 		worker.cancel()
-		close(worker.updateCh)
 	}
 	s.mu.Unlock()
 
@@ -141,18 +141,28 @@ func (s *Service) startUpdateListener(ctx context.Context) error {
 				}
 
 				s.mu.RLock()
-				worker, exists := s.ownedTriggers[update.LockID]
+				worker, exists := s.ownedTriggers[update.InternalID]
 				s.mu.RUnlock()
 
 				if exists {
-					select {
-					case worker.updateCh <- update:
-						s.logger.Debug("Sent update to trigger worker", "trigger.id", update.ID)
-					case <-ctx.Done():
-						return
+					// Stop the old worker but keep the lock
+					s.logger.Debug("Restarting trigger worker with new config", "trigger.id", update.ID)
+					worker.cleanupMu.Lock()
+					worker.skipCleanup = true
+					worker.cleanupMu.Unlock()
+					worker.cancel()
+
+					// Start new worker with updated trigger (will skip lock acquisition)
+					if err := s.startTriggerWorkerWithLock(ctx, update); err != nil {
+						s.logger.Error("Failed to restart worker", "trigger.id", update.ID, "err", err)
+						// Failed to restart - release the lock
+						if releaseErr := s.locker.Release(ctx, update.InternalID); releaseErr != nil {
+							s.logger.Error("Failed to release lock after restart failure", "err", releaseErr)
+						}
 					}
 				} else {
-					if err = s.startTriggerWorker(ctx, update); err != nil {
+					// New trigger - start a worker for it
+					if err := s.startTriggerWorker(ctx, update); err != nil {
 						s.logger.Error("Failed to start worker for new trigger", "trigger.id", update.ID, "err", err)
 					}
 				}
@@ -167,107 +177,105 @@ func (s *Service) startUpdateListener(ctx context.Context) error {
 }
 
 func (s *Service) startTriggerWorker(ctx context.Context, trigger Trigger) error {
+	return s.startTriggerWorkerInternal(ctx, trigger, false)
+}
+
+func (s *Service) startTriggerWorkerWithLock(ctx context.Context, trigger Trigger) error {
+	return s.startTriggerWorkerInternal(ctx, trigger, true)
+}
+
+func (s *Service) startTriggerWorkerInternal(ctx context.Context, trigger Trigger, alreadyLocked bool) error {
 	logger := s.logger.WithGroup("trigger").With("id", trigger.ID, "name", trigger.Name)
+
+	// Try to acquire distributed lock if we don't already own it
+	if !alreadyLocked {
+		acquired, err := s.locker.Acquire(ctx, trigger.InternalID)
+		if err != nil {
+			return fmt.Errorf("failed to acquire lock: %w", err)
+		}
+		if !acquired {
+			logger.Debug("Trigger already locked by another instance")
+			return nil
+		}
+	}
 
 	subscriber, err := trigger.mapSubscriber(ctx)
 	if err != nil {
+		if releaseErr := s.locker.Release(ctx, trigger.InternalID); releaseErr != nil {
+			logger.Error("Failed to release lock after subscriber creation failure", "err", releaseErr)
+		}
 		return err
 	}
 
+	if err = subscriber.Decode(trigger.Data); err != nil {
+		if releaseErr := s.locker.Release(ctx, trigger.InternalID); releaseErr != nil {
+			logger.Error("Failed to release lock after decode failure", "err", releaseErr)
+		}
+		return fmt.Errorf("failed to decode trigger: %w", err)
+	}
+
 	workerCtx, cancel := context.WithCancel(ctx)
-	updateCh := make(chan Trigger, 1)
+
+	worker := &triggerWorker{
+		cancel: cancel,
+	}
 
 	s.mu.Lock()
-	s.ownedTriggers[trigger.LockID] = &triggerWorker{
-		cancel:   cancel,
-		updateCh: updateCh,
-	}
+	s.ownedTriggers[trigger.InternalID] = worker
 	s.mu.Unlock()
 
 	s.wg.Add(1)
 	go func() {
 		defer s.wg.Done()
 		defer func() {
+			// Check if we should skip cleanup (lock release)
+			worker.cleanupMu.Lock()
+			skip := worker.skipCleanup
+			worker.cleanupMu.Unlock()
+
+			if skip {
+				logger.Debug("Worker replaced, skipping cleanup")
+				return
+			}
+
+			// Only delete from map if we're still the current worker
 			s.mu.Lock()
-			delete(s.ownedTriggers, trigger.LockID)
+			if s.ownedTriggers[trigger.InternalID] == worker {
+				delete(s.ownedTriggers, trigger.InternalID)
+			}
 			s.mu.Unlock()
 
-			if err := s.locker.Release(ctx, trigger.LockID); err != nil {
+			cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cleanupCancel()
+
+			if err = s.locker.Release(cleanupCtx, trigger.InternalID); err != nil {
 				logger.Error("Failed to release lock", "err", err)
 			}
 		}()
 
 		logger.Info("Trigger started")
 
-		if err = subscriber.Decode(trigger.Data); err != nil {
-			logger.Error("Failed to decode trigger", "err", err)
-			return
-		}
-
-		var subCtx context.Context
-		var subCancel context.CancelFunc
-		var triggerCh <-chan Event
-
-		subCtx, subCancel = context.WithCancel(workerCtx)
-		triggerCh, err = subscriber.Subscribe(subCtx, logger, trigger.WorkflowID)
+		triggerCh, err := subscriber.Subscribe(workerCtx, logger, trigger)
 		if err != nil {
 			logger.Error("Failed to subscribe", "err", err)
-			subCancel()
 			return
 		}
-
-		currentTrigger := trigger
 
 		for {
 			select {
-			case result, ok := <-triggerCh:
+			case event, ok := <-triggerCh:
 				if !ok {
-					subCancel()
+					logger.Info("Trigger stopped")
 					return
 				}
 				select {
-				case s.eventCh <- result:
+				case s.eventCh <- event:
 				case <-workerCtx.Done():
-					subCancel()
 					return
 				}
-
-			case updatedTrigger := <-updateCh:
-				logger = s.logger.WithGroup("trigger").With("id", updatedTrigger.ID, "name", updatedTrigger.Name)
-				logger.Info("Received trigger update", "old.data", currentTrigger.Data, "new.data", updatedTrigger.Data)
-				currentTrigger = updatedTrigger
-
-				subCancel()
-
-				// Drain the old subscriber's channel to ensure all messages are processed
-				// before starting a new subscriber.
-				for range triggerCh {
-				}
-
-				newSubscriber, err := updatedTrigger.mapSubscriber(workerCtx)
-				if err != nil {
-					logger.Error("Failed to create new subscriber", "err", err)
-					return
-				}
-
-				if err = newSubscriber.Decode(updatedTrigger.Data); err != nil {
-					logger.Error("Failed to decode updated trigger", "err", err)
-					return
-				}
-
-				subCtx, subCancel = context.WithCancel(workerCtx)
-				triggerCh, err = newSubscriber.Subscribe(subCtx, logger, updatedTrigger.WorkflowID)
-				if err != nil {
-					logger.Error("Failed to subscribe with updated trigger", "err", err)
-					subCancel()
-					return
-				}
-
-				subscriber = newSubscriber
-				logger.Info("Subscriber restarted with new configuration")
 
 			case <-workerCtx.Done():
-				subCancel()
+				logger.Info("Trigger cancelled")
 				return
 			}
 		}
