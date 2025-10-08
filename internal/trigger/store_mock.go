@@ -3,6 +3,8 @@ package trigger
 import (
 	"context"
 	"sync"
+
+	"github.com/google/uuid"
 )
 
 type MockStore struct {
@@ -23,6 +25,19 @@ func (m *MockStore) All(_ context.Context) ([]Trigger, error) {
 	result := make([]Trigger, len(m.triggers))
 	copy(result, m.triggers)
 	return result, nil
+}
+
+func (m *MockStore) Get(_ context.Context, id uuid.UUID) (Trigger, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	for _, trigger := range m.triggers {
+		if trigger.ID == id {
+			return trigger, nil
+		}
+	}
+
+	return Trigger{}, ErrTriggerNotFound
 }
 
 func (m *MockStore) Add(_ context.Context, trigger Trigger) error {
@@ -51,11 +66,18 @@ func (m *MockStore) Update(_ context.Context, trigger Trigger) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	found := false
 	for i := range m.triggers {
 		if m.triggers[i].ID == trigger.ID {
 			m.triggers[i].Name = trigger.Name
 			m.triggers[i].Data = trigger.Data
+			found = true
+			break
 		}
+	}
+
+	if !found {
+		return ErrTriggerNotFound
 	}
 
 	if m.updateCh != nil {
@@ -65,4 +87,18 @@ func (m *MockStore) Update(_ context.Context, trigger Trigger) error {
 		}
 	}
 	return nil
+}
+
+func (m *MockStore) Delete(_ context.Context, id uuid.UUID) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for i, trigger := range m.triggers {
+		if trigger.ID == id {
+			m.triggers = append(m.triggers[:i], m.triggers[i+1:]...)
+			return nil
+		}
+	}
+
+	return ErrTriggerNotFound
 }

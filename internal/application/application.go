@@ -103,6 +103,7 @@ func (app *Container) Start(ctx context.Context) error {
 	srv := server.New(
 		app.logger.With("service", "server"),
 		app.store.workflow,
+		app.service.workflow,
 		app.store.trigger,
 		options...,
 	)

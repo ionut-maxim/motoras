@@ -35,11 +35,26 @@ const (
 const (
 	// WorkflowServiceCreateProcedure is the fully-qualified name of the WorkflowService's Create RPC.
 	WorkflowServiceCreateProcedure = "/workflow.v1.WorkflowService/Create"
+	// WorkflowServiceGetProcedure is the fully-qualified name of the WorkflowService's Get RPC.
+	WorkflowServiceGetProcedure = "/workflow.v1.WorkflowService/Get"
+	// WorkflowServiceUpdateProcedure is the fully-qualified name of the WorkflowService's Update RPC.
+	WorkflowServiceUpdateProcedure = "/workflow.v1.WorkflowService/Update"
+	// WorkflowServiceDeleteProcedure is the fully-qualified name of the WorkflowService's Delete RPC.
+	WorkflowServiceDeleteProcedure = "/workflow.v1.WorkflowService/Delete"
+	// WorkflowServiceListProcedure is the fully-qualified name of the WorkflowService's List RPC.
+	WorkflowServiceListProcedure = "/workflow.v1.WorkflowService/List"
+	// WorkflowServiceStartProcedure is the fully-qualified name of the WorkflowService's Start RPC.
+	WorkflowServiceStartProcedure = "/workflow.v1.WorkflowService/Start"
 )
 
 // WorkflowServiceClient is a client for the workflow.v1.WorkflowService service.
 type WorkflowServiceClient interface {
 	Create(context.Context, *connect.Request[v1.CreateRequest]) (*connect.Response[v1.CreateResponse], error)
+	Get(context.Context, *connect.Request[v1.GetRequest]) (*connect.Response[v1.GetResponse], error)
+	Update(context.Context, *connect.Request[v1.UpdateRequest]) (*connect.Response[v1.UpdateResponse], error)
+	Delete(context.Context, *connect.Request[v1.DeleteRequest]) (*connect.Response[v1.DeleteResponse], error)
+	List(context.Context, *connect.Request[v1.ListRequest]) (*connect.Response[v1.ListResponse], error)
+	Start(context.Context, *connect.Request[v1.StartRequest]) (*connect.Response[v1.StartResponse], error)
 }
 
 // NewWorkflowServiceClient constructs a client for the workflow.v1.WorkflowService service. By
@@ -59,12 +74,47 @@ func NewWorkflowServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(workflowServiceMethods.ByName("Create")),
 			connect.WithClientOptions(opts...),
 		),
+		get: connect.NewClient[v1.GetRequest, v1.GetResponse](
+			httpClient,
+			baseURL+WorkflowServiceGetProcedure,
+			connect.WithSchema(workflowServiceMethods.ByName("Get")),
+			connect.WithClientOptions(opts...),
+		),
+		update: connect.NewClient[v1.UpdateRequest, v1.UpdateResponse](
+			httpClient,
+			baseURL+WorkflowServiceUpdateProcedure,
+			connect.WithSchema(workflowServiceMethods.ByName("Update")),
+			connect.WithClientOptions(opts...),
+		),
+		delete: connect.NewClient[v1.DeleteRequest, v1.DeleteResponse](
+			httpClient,
+			baseURL+WorkflowServiceDeleteProcedure,
+			connect.WithSchema(workflowServiceMethods.ByName("Delete")),
+			connect.WithClientOptions(opts...),
+		),
+		list: connect.NewClient[v1.ListRequest, v1.ListResponse](
+			httpClient,
+			baseURL+WorkflowServiceListProcedure,
+			connect.WithSchema(workflowServiceMethods.ByName("List")),
+			connect.WithClientOptions(opts...),
+		),
+		start: connect.NewClient[v1.StartRequest, v1.StartResponse](
+			httpClient,
+			baseURL+WorkflowServiceStartProcedure,
+			connect.WithSchema(workflowServiceMethods.ByName("Start")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // workflowServiceClient implements WorkflowServiceClient.
 type workflowServiceClient struct {
 	create *connect.Client[v1.CreateRequest, v1.CreateResponse]
+	get    *connect.Client[v1.GetRequest, v1.GetResponse]
+	update *connect.Client[v1.UpdateRequest, v1.UpdateResponse]
+	delete *connect.Client[v1.DeleteRequest, v1.DeleteResponse]
+	list   *connect.Client[v1.ListRequest, v1.ListResponse]
+	start  *connect.Client[v1.StartRequest, v1.StartResponse]
 }
 
 // Create calls workflow.v1.WorkflowService.Create.
@@ -72,9 +122,39 @@ func (c *workflowServiceClient) Create(ctx context.Context, req *connect.Request
 	return c.create.CallUnary(ctx, req)
 }
 
+// Get calls workflow.v1.WorkflowService.Get.
+func (c *workflowServiceClient) Get(ctx context.Context, req *connect.Request[v1.GetRequest]) (*connect.Response[v1.GetResponse], error) {
+	return c.get.CallUnary(ctx, req)
+}
+
+// Update calls workflow.v1.WorkflowService.Update.
+func (c *workflowServiceClient) Update(ctx context.Context, req *connect.Request[v1.UpdateRequest]) (*connect.Response[v1.UpdateResponse], error) {
+	return c.update.CallUnary(ctx, req)
+}
+
+// Delete calls workflow.v1.WorkflowService.Delete.
+func (c *workflowServiceClient) Delete(ctx context.Context, req *connect.Request[v1.DeleteRequest]) (*connect.Response[v1.DeleteResponse], error) {
+	return c.delete.CallUnary(ctx, req)
+}
+
+// List calls workflow.v1.WorkflowService.List.
+func (c *workflowServiceClient) List(ctx context.Context, req *connect.Request[v1.ListRequest]) (*connect.Response[v1.ListResponse], error) {
+	return c.list.CallUnary(ctx, req)
+}
+
+// Start calls workflow.v1.WorkflowService.Start.
+func (c *workflowServiceClient) Start(ctx context.Context, req *connect.Request[v1.StartRequest]) (*connect.Response[v1.StartResponse], error) {
+	return c.start.CallUnary(ctx, req)
+}
+
 // WorkflowServiceHandler is an implementation of the workflow.v1.WorkflowService service.
 type WorkflowServiceHandler interface {
 	Create(context.Context, *connect.Request[v1.CreateRequest]) (*connect.Response[v1.CreateResponse], error)
+	Get(context.Context, *connect.Request[v1.GetRequest]) (*connect.Response[v1.GetResponse], error)
+	Update(context.Context, *connect.Request[v1.UpdateRequest]) (*connect.Response[v1.UpdateResponse], error)
+	Delete(context.Context, *connect.Request[v1.DeleteRequest]) (*connect.Response[v1.DeleteResponse], error)
+	List(context.Context, *connect.Request[v1.ListRequest]) (*connect.Response[v1.ListResponse], error)
+	Start(context.Context, *connect.Request[v1.StartRequest]) (*connect.Response[v1.StartResponse], error)
 }
 
 // NewWorkflowServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -90,10 +170,50 @@ func NewWorkflowServiceHandler(svc WorkflowServiceHandler, opts ...connect.Handl
 		connect.WithSchema(workflowServiceMethods.ByName("Create")),
 		connect.WithHandlerOptions(opts...),
 	)
+	workflowServiceGetHandler := connect.NewUnaryHandler(
+		WorkflowServiceGetProcedure,
+		svc.Get,
+		connect.WithSchema(workflowServiceMethods.ByName("Get")),
+		connect.WithHandlerOptions(opts...),
+	)
+	workflowServiceUpdateHandler := connect.NewUnaryHandler(
+		WorkflowServiceUpdateProcedure,
+		svc.Update,
+		connect.WithSchema(workflowServiceMethods.ByName("Update")),
+		connect.WithHandlerOptions(opts...),
+	)
+	workflowServiceDeleteHandler := connect.NewUnaryHandler(
+		WorkflowServiceDeleteProcedure,
+		svc.Delete,
+		connect.WithSchema(workflowServiceMethods.ByName("Delete")),
+		connect.WithHandlerOptions(opts...),
+	)
+	workflowServiceListHandler := connect.NewUnaryHandler(
+		WorkflowServiceListProcedure,
+		svc.List,
+		connect.WithSchema(workflowServiceMethods.ByName("List")),
+		connect.WithHandlerOptions(opts...),
+	)
+	workflowServiceStartHandler := connect.NewUnaryHandler(
+		WorkflowServiceStartProcedure,
+		svc.Start,
+		connect.WithSchema(workflowServiceMethods.ByName("Start")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/workflow.v1.WorkflowService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case WorkflowServiceCreateProcedure:
 			workflowServiceCreateHandler.ServeHTTP(w, r)
+		case WorkflowServiceGetProcedure:
+			workflowServiceGetHandler.ServeHTTP(w, r)
+		case WorkflowServiceUpdateProcedure:
+			workflowServiceUpdateHandler.ServeHTTP(w, r)
+		case WorkflowServiceDeleteProcedure:
+			workflowServiceDeleteHandler.ServeHTTP(w, r)
+		case WorkflowServiceListProcedure:
+			workflowServiceListHandler.ServeHTTP(w, r)
+		case WorkflowServiceStartProcedure:
+			workflowServiceStartHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -105,4 +225,24 @@ type UnimplementedWorkflowServiceHandler struct{}
 
 func (UnimplementedWorkflowServiceHandler) Create(context.Context, *connect.Request[v1.CreateRequest]) (*connect.Response[v1.CreateResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("workflow.v1.WorkflowService.Create is not implemented"))
+}
+
+func (UnimplementedWorkflowServiceHandler) Get(context.Context, *connect.Request[v1.GetRequest]) (*connect.Response[v1.GetResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("workflow.v1.WorkflowService.Get is not implemented"))
+}
+
+func (UnimplementedWorkflowServiceHandler) Update(context.Context, *connect.Request[v1.UpdateRequest]) (*connect.Response[v1.UpdateResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("workflow.v1.WorkflowService.Update is not implemented"))
+}
+
+func (UnimplementedWorkflowServiceHandler) Delete(context.Context, *connect.Request[v1.DeleteRequest]) (*connect.Response[v1.DeleteResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("workflow.v1.WorkflowService.Delete is not implemented"))
+}
+
+func (UnimplementedWorkflowServiceHandler) List(context.Context, *connect.Request[v1.ListRequest]) (*connect.Response[v1.ListResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("workflow.v1.WorkflowService.List is not implemented"))
+}
+
+func (UnimplementedWorkflowServiceHandler) Start(context.Context, *connect.Request[v1.StartRequest]) (*connect.Response[v1.StartResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("workflow.v1.WorkflowService.Start is not implemented"))
 }

@@ -15,9 +15,10 @@ import (
 )
 
 type Server struct {
-	logger        *slog.Logger
-	workflowStore workflow.Store
-	triggerStore  trigger.Store
+	logger          *slog.Logger
+	workflowStore   workflow.Store
+	workflowService *workflow.Service
+	triggerStore    trigger.Store
 
 	listener net.Listener
 }
@@ -30,8 +31,13 @@ func WithListener(listener net.Listener) Option {
 	}
 }
 
-func New(logger *slog.Logger, workflowStore workflow.Store, triggerStore trigger.Store, options ...Option) *Server {
-	s := &Server{logger: logger, workflowStore: workflowStore, triggerStore: triggerStore}
+func New(logger *slog.Logger, workflowStore workflow.Store, workflowService *workflow.Service, triggerStore trigger.Store, options ...Option) *Server {
+	s := &Server{
+		logger:          logger,
+		workflowStore:   workflowStore,
+		workflowService: workflowService,
+		triggerStore:    triggerStore,
+	}
 	for _, option := range options {
 		option(s)
 	}
@@ -53,7 +59,7 @@ func (s *Server) Start() error {
 	interceptors := connect.WithInterceptors(logInterceptor, validateInterceptor)
 
 	tPath, tHandler := triggerv1connect.NewTriggerServiceHandler(NewTriggerHandler(s.triggerStore), interceptors)
-	wfPath, wfHandler := workflowv1connect.NewWorkflowServiceHandler(NewWorkflowHandler(s.workflowStore), interceptors)
+	wfPath, wfHandler := workflowv1connect.NewWorkflowServiceHandler(NewWorkflowHandler(s.workflowStore, s.workflowService), interceptors)
 
 	mux := http.NewServeMux()
 	mux.Handle(tPath, tHandler)

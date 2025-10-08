@@ -94,6 +94,32 @@ func (s *PostgresStore) All(ctx context.Context) ([]Trigger, error) {
 	return triggers, nil
 }
 
+func (s *PostgresStore) Get(ctx context.Context, id uuid.UUID) (Trigger, error) {
+	query := `
+		SELECT internal_id, id, name, type, workflow_id, data
+		FROM triggers
+		WHERE id = $1
+	`
+
+	var t Trigger
+	var dataJSON []byte
+
+	err := s.conn.QueryRow(ctx, query, id).Scan(&t.InternalID, &t.ID, &t.Name, &t.Type, &t.WorkflowID, &dataJSON)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return Trigger{}, ErrTriggerNotFound
+		}
+		return Trigger{}, fmt.Errorf("failed to query trigger: %w", err)
+	}
+
+	// Unmarshal JSONB data
+	if err := json.Unmarshal(dataJSON, &t.Data); err != nil {
+		return Trigger{}, fmt.Errorf("failed to unmarshal trigger data: %w", err)
+	}
+
+	return t, nil
+}
+
 func (s *PostgresStore) Add(ctx context.Context, trigger Trigger) error {
 	// If ID is not set, generate one
 	if trigger.ID == uuid.Nil {
@@ -137,7 +163,22 @@ func (s *PostgresStore) Update(ctx context.Context, trigger Trigger) error {
 	}
 
 	if result.RowsAffected() == 0 {
-		return fmt.Errorf("trigger not found: %s", trigger.ID)
+		return ErrTriggerNotFound
+	}
+
+	return nil
+}
+
+func (s *PostgresStore) Delete(ctx context.Context, id uuid.UUID) error {
+	query := `DELETE FROM triggers WHERE id = $1`
+
+	result, err := s.conn.Exec(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete trigger: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrTriggerNotFound
 	}
 
 	return nil

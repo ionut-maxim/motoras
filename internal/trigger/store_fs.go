@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/google/uuid"
 )
 
 type FileSystemStore struct {
@@ -73,12 +74,53 @@ func (f *FileSystemStore) All(ctx context.Context) ([]Trigger, error) {
 	return triggers, nil
 }
 
+func (f *FileSystemStore) Get(ctx context.Context, id uuid.UUID) (Trigger, error) {
+	f.mu.RLock()
+	defer f.mu.RUnlock()
+
+	filename := fmt.Sprintf("%s.json", id.String())
+	triggerPath := filepath.Join(f.path, filename)
+
+	data, err := os.ReadFile(triggerPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return Trigger{}, ErrTriggerNotFound
+		}
+		return Trigger{}, fmt.Errorf("failed to read trigger file: %w", err)
+	}
+
+	var trigger Trigger
+	if err := json.Unmarshal(data, &trigger); err != nil {
+		return Trigger{}, fmt.Errorf("failed to unmarshal trigger: %w", err)
+	}
+
+	return trigger, nil
+}
+
 func (f *FileSystemStore) Add(ctx context.Context, trigger Trigger) error {
 	return f.writeTrigger(trigger)
 }
 
 func (f *FileSystemStore) Update(ctx context.Context, trigger Trigger) error {
 	return f.writeTrigger(trigger)
+}
+
+func (f *FileSystemStore) Delete(ctx context.Context, id uuid.UUID) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	filename := fmt.Sprintf("%s.json", id.String())
+	triggerPath := filepath.Join(f.path, filename)
+
+	err := os.Remove(triggerPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return ErrTriggerNotFound
+		}
+		return fmt.Errorf("failed to delete trigger file: %w", err)
+	}
+
+	return nil
 }
 
 func (f *FileSystemStore) writeTrigger(trigger Trigger) error {

@@ -8,9 +8,11 @@ import (
 
 type Store interface {
 	All(ctx context.Context) ([]Trigger, error)
+	Get(ctx context.Context, id uuid.UUID) (Trigger, error)
 	Subscribe(ctx context.Context) (<-chan Trigger, error)
 	Add(ctx context.Context, trigger Trigger) error
 	Update(ctx context.Context, trigger Trigger) error
+	Delete(ctx context.Context, id uuid.UUID) error
 	Shutdown(ctx context.Context)
 }
 

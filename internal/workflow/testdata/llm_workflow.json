@@ -1,0 +1,50 @@
+{
+  "id": "llm-test-workflow",
+  "steps": [
+    {
+      "type": "llm",
+      "spec": {
+        "name": "analyze_input",
+        "provider": "mock",
+        "model": "gpt-4",
+        "prompt": "Analyze this request and provide a structured decision: {{input}}",
+        "temperature": 0.3
+      }
+    },
+    {
+      "type": "if",
+      "spec": {
+        "name": "check_decision",
+        "condition": "{{analyze_input.output.decision}} == 'approve'",
+        "then": [
+          {
+            "type": "http",
+            "spec": {
+              "name": "send_approval",
+              "url": "https://api.example.com/approve",
+              "method": "POST",
+              "body": {
+                "decision": "{{analyze_input.output.decision}}",
+                "confidence": "{{analyze_input.output.confidence}}",
+                "reason": "{{analyze_input.output.reason}}"
+              }
+            }
+          }
+        ],
+        "else": [
+          {
+            "type": "http",
+            "spec": {
+              "name": "send_rejection",
+              "url": "https://api.example.com/reject",
+              "method": "POST",
+              "body": {
+                "reason": "{{analyze_input.output.reason}}"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

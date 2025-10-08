@@ -12,6 +12,9 @@ func init() {
 	gob.Register(&HTTP{})
 	gob.Register(&Action{})
 	gob.Register(&If{})
+	gob.Register(&Exec{})
+	gob.Register(&Container{})
+	gob.Register(&LLM{})
 	// Register map types that may appear in step fields (e.g., HTTP.Body, Env)
 	gob.Register(map[string]any{})
 }
@@ -23,9 +26,12 @@ func (t StepType) String() string {
 }
 
 const (
-	StepTypeIf     StepType = "if"
-	StepTypeAction StepType = "action"
-	StepTypeHTTP   StepType = "http"
+	StepTypeIf        StepType = "if"
+	StepTypeAction    StepType = "action"
+	StepTypeHTTP      StepType = "http"
+	StepTypeExec      StepType = "exec"
+	StepTypeContainer StepType = "container"
+	StepTypeLLM       StepType = "llm"
 )
 
 type Executable interface {
@@ -55,6 +61,12 @@ func (s *Step) UnmarshalJSON(data []byte) error {
 		s.Spec = new(Action)
 	case StepTypeHTTP:
 		s.Spec = new(HTTP)
+	case StepTypeExec:
+		s.Spec = new(Exec)
+	case StepTypeContainer:
+		s.Spec = new(Container)
+	case StepTypeLLM:
+		s.Spec = new(LLM)
 	default:
 		return fmt.Errorf("unknown step type: %s", raw.Type)
 	}

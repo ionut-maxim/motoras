@@ -275,6 +275,182 @@ func (x *UpdateResponse) GetId() string {
 	return ""
 }
 
+type GetRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetRequest) Reset() {
+	*x = GetRequest{}
+	mi := &file_trigger_v1_trigger_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRequest) ProtoMessage() {}
+
+func (x *GetRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_trigger_v1_trigger_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRequest.ProtoReflect.Descriptor instead.
+func (*GetRequest) Descriptor() ([]byte, []int) {
+	return file_trigger_v1_trigger_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GetRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type GetResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Trigger       *Trigger               `protobuf:"bytes,1,opt,name=trigger,proto3" json:"trigger,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetResponse) Reset() {
+	*x = GetResponse{}
+	mi := &file_trigger_v1_trigger_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetResponse) ProtoMessage() {}
+
+func (x *GetResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_trigger_v1_trigger_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetResponse.ProtoReflect.Descriptor instead.
+func (*GetResponse) Descriptor() ([]byte, []int) {
+	return file_trigger_v1_trigger_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *GetResponse) GetTrigger() *Trigger {
+	if x != nil {
+		return x.Trigger
+	}
+	return nil
+}
+
+type DeleteRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteRequest) Reset() {
+	*x = DeleteRequest{}
+	mi := &file_trigger_v1_trigger_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteRequest) ProtoMessage() {}
+
+func (x *DeleteRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_trigger_v1_trigger_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteRequest.ProtoReflect.Descriptor instead.
+func (*DeleteRequest) Descriptor() ([]byte, []int) {
+	return file_trigger_v1_trigger_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *DeleteRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type DeleteResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteResponse) Reset() {
+	*x = DeleteResponse{}
+	mi := &file_trigger_v1_trigger_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteResponse) ProtoMessage() {}
+
+func (x *DeleteResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_trigger_v1_trigger_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteResponse.ProtoReflect.Descriptor instead.
+func (*DeleteResponse) Descriptor() ([]byte, []int) {
+	return file_trigger_v1_trigger_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *DeleteResponse) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
 type ListRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -283,7 +459,7 @@ type ListRequest struct {
 
 func (x *ListRequest) Reset() {
 	*x = ListRequest{}
-	mi := &file_trigger_v1_trigger_proto_msgTypes[5]
+	mi := &file_trigger_v1_trigger_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -295,7 +471,7 @@ func (x *ListRequest) String() string {
 func (*ListRequest) ProtoMessage() {}
 
 func (x *ListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_trigger_v1_trigger_proto_msgTypes[5]
+	mi := &file_trigger_v1_trigger_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -308,7 +484,7 @@ func (x *ListRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRequest.ProtoReflect.Descriptor instead.
 func (*ListRequest) Descriptor() ([]byte, []int) {
-	return file_trigger_v1_trigger_proto_rawDescGZIP(), []int{5}
+	return file_trigger_v1_trigger_proto_rawDescGZIP(), []int{9}
 }
 
 type ListResponse struct {
@@ -320,7 +496,7 @@ type ListResponse struct {
 
 func (x *ListResponse) Reset() {
 	*x = ListResponse{}
-	mi := &file_trigger_v1_trigger_proto_msgTypes[6]
+	mi := &file_trigger_v1_trigger_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -332,7 +508,7 @@ func (x *ListResponse) String() string {
 func (*ListResponse) ProtoMessage() {}
 
 func (x *ListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_trigger_v1_trigger_proto_msgTypes[6]
+	mi := &file_trigger_v1_trigger_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -345,7 +521,7 @@ func (x *ListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListResponse.ProtoReflect.Descriptor instead.
 func (*ListResponse) Descriptor() ([]byte, []int) {
-	return file_trigger_v1_trigger_proto_rawDescGZIP(), []int{6}
+	return file_trigger_v1_trigger_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ListResponse) GetTriggers() []*Trigger {
@@ -360,11 +536,12 @@ var File_trigger_v1_trigger_proto protoreflect.FileDescriptor
 const file_trigger_v1_trigger_proto_rawDesc = "" +
 	"\n" +
 	"\x18trigger/v1/trigger.proto\x12\n" +
-	"trigger.v1\x1a\x19google/protobuf/any.proto\x1a\x1bbuf/validate/validate.proto\"\xa8\x01\n" +
+	"trigger.v1\x1a\x19google/protobuf/any.proto\x1a\x1bbuf/validate/validate.proto\"\xbd\x01\n" +
 	"\aTrigger\x12\x18\n" +
-	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
-	"\x04type\x18\x03 \x01(\tR\x04type\x12)\n" +
+	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\x12\x1e\n" +
+	"\x04name\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\xff\x01R\x04name\x12\x1b\n" +
+	"\x04type\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04type\x12)\n" +
 	"\vworkflow_id\x18\x04 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\n" +
 	"workflowId\x120\n" +
 	"\x04data\x18\x05 \x01(\v2\x14.google.protobuf.AnyB\x06\xbaH\x03\xc8\x01\x01R\x04data\">\n" +
@@ -375,13 +552,24 @@ const file_trigger_v1_trigger_proto_rawDesc = "" +
 	"\rUpdateRequest\x12-\n" +
 	"\atrigger\x18\x01 \x01(\v2\x13.trigger.v1.TriggerR\atrigger\"*\n" +
 	"\x0eUpdateResponse\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"&\n" +
+	"\n" +
+	"GetRequest\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"<\n" +
+	"\vGetResponse\x12-\n" +
+	"\atrigger\x18\x01 \x01(\v2\x13.trigger.v1.TriggerR\atrigger\")\n" +
+	"\rDeleteRequest\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"*\n" +
+	"\x0eDeleteResponse\x12\x18\n" +
 	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"\r\n" +
 	"\vListRequest\"?\n" +
 	"\fListResponse\x12/\n" +
-	"\btriggers\x18\x01 \x03(\v2\x13.trigger.v1.TriggerR\btriggers2\xd3\x01\n" +
+	"\btriggers\x18\x01 \x03(\v2\x13.trigger.v1.TriggerR\btriggers2\xd0\x02\n" +
 	"\x0eTriggerService\x12A\n" +
-	"\x06Create\x12\x19.trigger.v1.CreateRequest\x1a\x1a.trigger.v1.CreateResponse\"\x00\x12A\n" +
-	"\x06Update\x12\x19.trigger.v1.UpdateRequest\x1a\x1a.trigger.v1.UpdateResponse\"\x00\x12;\n" +
+	"\x06Create\x12\x19.trigger.v1.CreateRequest\x1a\x1a.trigger.v1.CreateResponse\"\x00\x128\n" +
+	"\x03Get\x12\x16.trigger.v1.GetRequest\x1a\x17.trigger.v1.GetResponse\"\x00\x12A\n" +
+	"\x06Update\x12\x19.trigger.v1.UpdateRequest\x1a\x1a.trigger.v1.UpdateResponse\"\x00\x12A\n" +
+	"\x06Delete\x12\x19.trigger.v1.DeleteRequest\x1a\x1a.trigger.v1.DeleteResponse\"\x00\x12;\n" +
 	"\x04List\x12\x17.trigger.v1.ListRequest\x1a\x18.trigger.v1.ListResponse\"\x00B9Z7github.com/ionut-maxim/motoras/api/trigger/v1;triggerv1b\x06proto3"
 
 var (
@@ -396,33 +584,42 @@ func file_trigger_v1_trigger_proto_rawDescGZIP() []byte {
 	return file_trigger_v1_trigger_proto_rawDescData
 }
 
-var file_trigger_v1_trigger_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_trigger_v1_trigger_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_trigger_v1_trigger_proto_goTypes = []any{
 	(*Trigger)(nil),        // 0: trigger.v1.Trigger
 	(*CreateRequest)(nil),  // 1: trigger.v1.CreateRequest
 	(*CreateResponse)(nil), // 2: trigger.v1.CreateResponse
 	(*UpdateRequest)(nil),  // 3: trigger.v1.UpdateRequest
 	(*UpdateResponse)(nil), // 4: trigger.v1.UpdateResponse
-	(*ListRequest)(nil),    // 5: trigger.v1.ListRequest
-	(*ListResponse)(nil),   // 6: trigger.v1.ListResponse
-	(*anypb.Any)(nil),      // 7: google.protobuf.Any
+	(*GetRequest)(nil),     // 5: trigger.v1.GetRequest
+	(*GetResponse)(nil),    // 6: trigger.v1.GetResponse
+	(*DeleteRequest)(nil),  // 7: trigger.v1.DeleteRequest
+	(*DeleteResponse)(nil), // 8: trigger.v1.DeleteResponse
+	(*ListRequest)(nil),    // 9: trigger.v1.ListRequest
+	(*ListResponse)(nil),   // 10: trigger.v1.ListResponse
+	(*anypb.Any)(nil),      // 11: google.protobuf.Any
 }
 var file_trigger_v1_trigger_proto_depIdxs = []int32{
-	7, // 0: trigger.v1.Trigger.data:type_name -> google.protobuf.Any
-	0, // 1: trigger.v1.CreateRequest.trigger:type_name -> trigger.v1.Trigger
-	0, // 2: trigger.v1.UpdateRequest.trigger:type_name -> trigger.v1.Trigger
-	0, // 3: trigger.v1.ListResponse.triggers:type_name -> trigger.v1.Trigger
-	1, // 4: trigger.v1.TriggerService.Create:input_type -> trigger.v1.CreateRequest
-	3, // 5: trigger.v1.TriggerService.Update:input_type -> trigger.v1.UpdateRequest
-	5, // 6: trigger.v1.TriggerService.List:input_type -> trigger.v1.ListRequest
-	2, // 7: trigger.v1.TriggerService.Create:output_type -> trigger.v1.CreateResponse
-	4, // 8: trigger.v1.TriggerService.Update:output_type -> trigger.v1.UpdateResponse
-	6, // 9: trigger.v1.TriggerService.List:output_type -> trigger.v1.ListResponse
-	7, // [7:10] is the sub-list for method output_type
-	4, // [4:7] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	11, // 0: trigger.v1.Trigger.data:type_name -> google.protobuf.Any
+	0,  // 1: trigger.v1.CreateRequest.trigger:type_name -> trigger.v1.Trigger
+	0,  // 2: trigger.v1.UpdateRequest.trigger:type_name -> trigger.v1.Trigger
+	0,  // 3: trigger.v1.GetResponse.trigger:type_name -> trigger.v1.Trigger
+	0,  // 4: trigger.v1.ListResponse.triggers:type_name -> trigger.v1.Trigger
+	1,  // 5: trigger.v1.TriggerService.Create:input_type -> trigger.v1.CreateRequest
+	5,  // 6: trigger.v1.TriggerService.Get:input_type -> trigger.v1.GetRequest
+	3,  // 7: trigger.v1.TriggerService.Update:input_type -> trigger.v1.UpdateRequest
+	7,  // 8: trigger.v1.TriggerService.Delete:input_type -> trigger.v1.DeleteRequest
+	9,  // 9: trigger.v1.TriggerService.List:input_type -> trigger.v1.ListRequest
+	2,  // 10: trigger.v1.TriggerService.Create:output_type -> trigger.v1.CreateResponse
+	6,  // 11: trigger.v1.TriggerService.Get:output_type -> trigger.v1.GetResponse
+	4,  // 12: trigger.v1.TriggerService.Update:output_type -> trigger.v1.UpdateResponse
+	8,  // 13: trigger.v1.TriggerService.Delete:output_type -> trigger.v1.DeleteResponse
+	10, // 14: trigger.v1.TriggerService.List:output_type -> trigger.v1.ListResponse
+	10, // [10:15] is the sub-list for method output_type
+	5,  // [5:10] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_trigger_v1_trigger_proto_init() }
@@ -436,7 +633,7 @@ func file_trigger_v1_trigger_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_trigger_v1_trigger_proto_rawDesc), len(file_trigger_v1_trigger_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

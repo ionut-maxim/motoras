@@ -35,8 +35,12 @@ const (
 const (
 	// TriggerServiceCreateProcedure is the fully-qualified name of the TriggerService's Create RPC.
 	TriggerServiceCreateProcedure = "/trigger.v1.TriggerService/Create"
+	// TriggerServiceGetProcedure is the fully-qualified name of the TriggerService's Get RPC.
+	TriggerServiceGetProcedure = "/trigger.v1.TriggerService/Get"
 	// TriggerServiceUpdateProcedure is the fully-qualified name of the TriggerService's Update RPC.
 	TriggerServiceUpdateProcedure = "/trigger.v1.TriggerService/Update"
+	// TriggerServiceDeleteProcedure is the fully-qualified name of the TriggerService's Delete RPC.
+	TriggerServiceDeleteProcedure = "/trigger.v1.TriggerService/Delete"
 	// TriggerServiceListProcedure is the fully-qualified name of the TriggerService's List RPC.
 	TriggerServiceListProcedure = "/trigger.v1.TriggerService/List"
 )
@@ -44,7 +48,9 @@ const (
 // TriggerServiceClient is a client for the trigger.v1.TriggerService service.
 type TriggerServiceClient interface {
 	Create(context.Context, *connect.Request[v1.CreateRequest]) (*connect.Response[v1.CreateResponse], error)
+	Get(context.Context, *connect.Request[v1.GetRequest]) (*connect.Response[v1.GetResponse], error)
 	Update(context.Context, *connect.Request[v1.UpdateRequest]) (*connect.Response[v1.UpdateResponse], error)
+	Delete(context.Context, *connect.Request[v1.DeleteRequest]) (*connect.Response[v1.DeleteResponse], error)
 	List(context.Context, *connect.Request[v1.ListRequest]) (*connect.Response[v1.ListResponse], error)
 }
 
@@ -65,10 +71,22 @@ func NewTriggerServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(triggerServiceMethods.ByName("Create")),
 			connect.WithClientOptions(opts...),
 		),
+		get: connect.NewClient[v1.GetRequest, v1.GetResponse](
+			httpClient,
+			baseURL+TriggerServiceGetProcedure,
+			connect.WithSchema(triggerServiceMethods.ByName("Get")),
+			connect.WithClientOptions(opts...),
+		),
 		update: connect.NewClient[v1.UpdateRequest, v1.UpdateResponse](
 			httpClient,
 			baseURL+TriggerServiceUpdateProcedure,
 			connect.WithSchema(triggerServiceMethods.ByName("Update")),
+			connect.WithClientOptions(opts...),
+		),
+		delete: connect.NewClient[v1.DeleteRequest, v1.DeleteResponse](
+			httpClient,
+			baseURL+TriggerServiceDeleteProcedure,
+			connect.WithSchema(triggerServiceMethods.ByName("Delete")),
 			connect.WithClientOptions(opts...),
 		),
 		list: connect.NewClient[v1.ListRequest, v1.ListResponse](
@@ -83,7 +101,9 @@ func NewTriggerServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 // triggerServiceClient implements TriggerServiceClient.
 type triggerServiceClient struct {
 	create *connect.Client[v1.CreateRequest, v1.CreateResponse]
+	get    *connect.Client[v1.GetRequest, v1.GetResponse]
 	update *connect.Client[v1.UpdateRequest, v1.UpdateResponse]
+	delete *connect.Client[v1.DeleteRequest, v1.DeleteResponse]
 	list   *connect.Client[v1.ListRequest, v1.ListResponse]
 }
 
@@ -92,9 +112,19 @@ func (c *triggerServiceClient) Create(ctx context.Context, req *connect.Request[
 	return c.create.CallUnary(ctx, req)
 }
 
+// Get calls trigger.v1.TriggerService.Get.
+func (c *triggerServiceClient) Get(ctx context.Context, req *connect.Request[v1.GetRequest]) (*connect.Response[v1.GetResponse], error) {
+	return c.get.CallUnary(ctx, req)
+}
+
 // Update calls trigger.v1.TriggerService.Update.
 func (c *triggerServiceClient) Update(ctx context.Context, req *connect.Request[v1.UpdateRequest]) (*connect.Response[v1.UpdateResponse], error) {
 	return c.update.CallUnary(ctx, req)
+}
+
+// Delete calls trigger.v1.TriggerService.Delete.
+func (c *triggerServiceClient) Delete(ctx context.Context, req *connect.Request[v1.DeleteRequest]) (*connect.Response[v1.DeleteResponse], error) {
+	return c.delete.CallUnary(ctx, req)
 }
 
 // List calls trigger.v1.TriggerService.List.
@@ -105,7 +135,9 @@ func (c *triggerServiceClient) List(ctx context.Context, req *connect.Request[v1
 // TriggerServiceHandler is an implementation of the trigger.v1.TriggerService service.
 type TriggerServiceHandler interface {
 	Create(context.Context, *connect.Request[v1.CreateRequest]) (*connect.Response[v1.CreateResponse], error)
+	Get(context.Context, *connect.Request[v1.GetRequest]) (*connect.Response[v1.GetResponse], error)
 	Update(context.Context, *connect.Request[v1.UpdateRequest]) (*connect.Response[v1.UpdateResponse], error)
+	Delete(context.Context, *connect.Request[v1.DeleteRequest]) (*connect.Response[v1.DeleteResponse], error)
 	List(context.Context, *connect.Request[v1.ListRequest]) (*connect.Response[v1.ListResponse], error)
 }
 
@@ -122,10 +154,22 @@ func NewTriggerServiceHandler(svc TriggerServiceHandler, opts ...connect.Handler
 		connect.WithSchema(triggerServiceMethods.ByName("Create")),
 		connect.WithHandlerOptions(opts...),
 	)
+	triggerServiceGetHandler := connect.NewUnaryHandler(
+		TriggerServiceGetProcedure,
+		svc.Get,
+		connect.WithSchema(triggerServiceMethods.ByName("Get")),
+		connect.WithHandlerOptions(opts...),
+	)
 	triggerServiceUpdateHandler := connect.NewUnaryHandler(
 		TriggerServiceUpdateProcedure,
 		svc.Update,
 		connect.WithSchema(triggerServiceMethods.ByName("Update")),
+		connect.WithHandlerOptions(opts...),
+	)
+	triggerServiceDeleteHandler := connect.NewUnaryHandler(
+		TriggerServiceDeleteProcedure,
+		svc.Delete,
+		connect.WithSchema(triggerServiceMethods.ByName("Delete")),
 		connect.WithHandlerOptions(opts...),
 	)
 	triggerServiceListHandler := connect.NewUnaryHandler(
@@ -138,8 +182,12 @@ func NewTriggerServiceHandler(svc TriggerServiceHandler, opts ...connect.Handler
 		switch r.URL.Path {
 		case TriggerServiceCreateProcedure:
 			triggerServiceCreateHandler.ServeHTTP(w, r)
+		case TriggerServiceGetProcedure:
+			triggerServiceGetHandler.ServeHTTP(w, r)
 		case TriggerServiceUpdateProcedure:
 			triggerServiceUpdateHandler.ServeHTTP(w, r)
+		case TriggerServiceDeleteProcedure:
+			triggerServiceDeleteHandler.ServeHTTP(w, r)
 		case TriggerServiceListProcedure:
 			triggerServiceListHandler.ServeHTTP(w, r)
 		default:
@@ -155,8 +203,16 @@ func (UnimplementedTriggerServiceHandler) Create(context.Context, *connect.Reque
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("trigger.v1.TriggerService.Create is not implemented"))
 }
 
+func (UnimplementedTriggerServiceHandler) Get(context.Context, *connect.Request[v1.GetRequest]) (*connect.Response[v1.GetResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("trigger.v1.TriggerService.Get is not implemented"))
+}
+
 func (UnimplementedTriggerServiceHandler) Update(context.Context, *connect.Request[v1.UpdateRequest]) (*connect.Response[v1.UpdateResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("trigger.v1.TriggerService.Update is not implemented"))
+}
+
+func (UnimplementedTriggerServiceHandler) Delete(context.Context, *connect.Request[v1.DeleteRequest]) (*connect.Response[v1.DeleteResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("trigger.v1.TriggerService.Delete is not implemented"))
 }
 
 func (UnimplementedTriggerServiceHandler) List(context.Context, *connect.Request[v1.ListRequest]) (*connect.Response[v1.ListResponse], error) {
